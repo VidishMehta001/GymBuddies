@@ -1,0 +1,88 @@
+import tensorflow as tf
+from tensorflow.keras import datasets, layers, models
+import matplotlib.pyplot as plt
+import os
+import numpy as np
+from sklearn.model_selection import train_test_split
+tf.config.set_visible_devices([], 'GPU')
+dataset_train = []
+labels_train = []
+
+dataset_test = []
+labels_test = []
+for file in os.listdir('./augmented_arrays'):
+    data = np.load('./augmented_arrays/'+file)
+
+    if 'squats' in file:
+        label = 1
+    elif 'pushups' in file:
+        label = 2
+    elif 'other' in file:
+        label = 0
+
+    for i in range(len(data)):
+        ex_set = data[i]
+        for j in range(180, len(ex_set) - 300, 15):
+            if not 'v2' in file:
+                dataset_train.append(ex_set[j:j + 30])
+                labels_train.append(label)
+            else:
+                dataset_test.append(ex_set[j:j + 30])
+                labels_test.append(label)
+        for j in range(len(ex_set)-150,len(ex_set)-30,15):
+            if not 'v2' in file:
+                dataset_train.append(ex_set[j:j + 30])
+                labels_train.append(0)
+            else:
+                dataset_test.append(ex_set[j:j + 30])
+                labels_test.append(0)
+dataset_train = np.nan_to_num(np.array(dataset_train).reshape(len(dataset_train),30,3,12,1))
+dataset_val = np.nan_to_num(np.array(dataset_test).reshape(len(dataset_test),30,3,12,1))
+labels_train = np.array(labels_train)
+labels_val = np.array(labels_test)
+
+X_train, X_test, y_train, y_test = train_test_split(dataset_train, labels_train, test_size=0.25, random_state=42, shuffle = True)
+
+model = models.Sequential()
+model.add(layers.Conv3D(32, (3, 3, 3), padding='same', activation='relu', input_shape=(30, 3, 12, 1)))
+model.add(layers.MaxPooling3D((2, 2, 2), padding='same'))
+model.add(layers.Conv3D(64, (3, 3, 3), padding='same', activation='relu'))
+model.add(layers.MaxPooling3D((2, 2, 2), padding='same'))
+model.add(layers.Conv3D(64, (3, 3, 3), padding='same', activation='relu'))
+model.add(layers.Flatten())
+model.add(layers.Dense(64, activation='relu'))
+model.add(layers.Dropout(0.3))
+model.add(layers.Dense(64, activation='relu'))
+model.add(layers.Dropout(0.3))
+model.add(layers.Dense(3, activation='softmax'))
+model.summary()
+model.compile(optimizer='adam',
+              loss='sparse_categorical_crossentropy',
+              metrics=['accuracy'])
+
+history = model.fit(X_train, y_train, epochs=15,
+                    validation_data=(X_test, y_test))
+
+current_name='e15'
+plt.plot(history.history['accuracy'], label='accuracy')
+plt.plot(history.history['val_accuracy'], label = 'val_accuracy')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+#plt.ylim([0.75, 1])
+plt.legend(loc='lower right')
+plt.savefig(current_name+'_acc.png')
+plt.clf()
+plt.plot(history.history['loss'], label='loss')
+plt.plot(history.history['val_loss'], label = 'val_loss')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+#plt.ylim([0.75, 1])
+plt.legend(loc='upper right')
+plt.savefig(current_name+'_loss.png')
+
+model.save('exercise_classifier_model_'+current_name+'.h5')
+test_loss, test_acc = model.evaluate(dataset_val,  labels_val, verbose=2)
+
+print(test_acc)
+
+print('h')
