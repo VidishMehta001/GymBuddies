@@ -35,6 +35,14 @@ GymBuddies")
 **Step 4**: In visionSysPre folder run: <br>
 *$ python main.py --mono "Mono video file" --depth "Depth video file"*
 
+#### Frontend-Interface
+**Step 0**: Unzip folder
+**Step 1**: Create a new conda environment with web_requirements.txt (within GymBuddyWeb folder)<br>
+*$ conda create --name env --file conda_requirements.txt* <br>
+**Step 2**: Collect the static files<br>
+*$ python manage.py collectstatic* <br>
+**Step 3**: Serve the web interface in local host<br>
+*$ python manage.py runserver*
 
 ---
 ## SECTION 6 : PROJECT REPORT / PAPER
